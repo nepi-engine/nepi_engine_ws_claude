@@ -103,6 +103,7 @@ Format: YYYY-MM — Decision — Brief rationale
 
 - 2026-03 — Adopted Menuric Framework — Added governance scaffolding for AI-assisted development. Framework documents (LORE, FORGE, CODEX) added to repo root. Existing CLAUDE.md preserved and extended rather than replaced.
 - 2026-03 — Established PUSH EDITS workflow — Standard procedure for committing submodule changes, syncing superproject, and pushing to both nepi_engine_ws_claude and nepi_engine_ws develop while excluding Menuric Framework files. Triggered by the phrase "push edits". Upstream remote uses SSH: git@github.com:nepi-engine/nepi_engine_ws.git
+- 2026-03 — Submodule CLAUDE.md authoring pass completed — Initial developer reference files written for all submodules (nepi_engine, nepi_drivers, nepi_apps, nepi_interfaces, nepi_rui, nepi_ai_frameworks, nepi_3rd_party, nepi_scripts) by Claude Code.
 
 
 ## PUSH EDITS WORKFLOW
