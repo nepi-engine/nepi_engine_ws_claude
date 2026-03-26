@@ -106,6 +106,80 @@ The version string is documented in CLAUDE.md and updated by Claude Code as part
 Every Claude Code session that commits must also push before reporting the task as complete. A commit without a push is not a completed task. If the push fails, Claude Code must report the failure explicitly.
 
 
+## PUSH EDITS WORKFLOW
+
+Triggered by the phrase "push edits" in any Claude AI or Claude Code session. This is the standard procedure for committing all pending work and syncing to nepi_engine_ws develop.
+
+PROTECTED FILES — must never be pushed to nepi_engine_ws under any circumstances:
+  CLAUDE.md, NEPI-CODEX.md, NEPI-FORGE.md, NEPI-LORE.md, .claude/
+
+UPSTREAM REMOTE — nepi_engine_ws is configured as upstream-public with SSH URL:
+  git@github.com:nepi-engine/nepi_engine_ws.git
+  If not yet configured: git remote add upstream-public git@github.com:nepi-engine/nepi_engine_ws.git
+
+STEP 1 — INVENTORY
+Run git submodule status in the superproject. For every submodule showing a + prefix or untracked content, run git status inside that submodule and list every changed or untracked file. Report the full inventory before doing anything else.
+
+STEP 2 — COMMIT INSIDE EACH SUBMODULE WITH CHANGES
+For each submodule that has staged, unstaged, or untracked content:
+  git -C <submodule-path> checkout main
+  git -C <submodule-path> add .
+  git -C <submodule-path> commit -m "<specific description of what changed>"
+Use a specific, accurate commit message per submodule. Report each commit result before moving to the next.
+
+STEP 3 — PUSH EACH SUBMODULE TO ITS OWN REMOTE
+For each submodule that received a new commit in Step 2:
+  git -C <submodule-path> push origin main
+If any push fails, stop and report the error. Do not proceed until all submodule pushes succeed.
+
+STEP 4 — UPDATE THE SUPERPROJECT SUBMODULE POINTERS
+From the superproject root, stage all submodules that have a + in git submodule status:
+  git add <submodule-path> [<submodule-path> ...]
+  git commit -m "Update submodule pointers: <list affected submodules>"
+
+STEP 5 — PUSH TO nepi_engine_ws_claude (main)
+  git push origin main
+Report success or failure. Do not proceed if this fails.
+
+STEP 6 — SYNC TO nepi_engine_ws develop
+
+6a. Fetch the latest develop from upstream-public:
+  git fetch upstream-public develop
+
+6b. Verify what develop currently records for affected submodule pointers. Confirm the cherry-pick will apply cleanly (same base state).
+
+6c. Create a clean branch from upstream-public/develop:
+  git checkout -b develop-sync upstream-public/develop
+
+6d. Cherry-pick only the superproject pointer update commit from Step 4:
+  git cherry-pick <commit-hash>
+
+6e. Run the protected file check — this must pass before any push:
+  git diff --name-status upstream-public/develop develop-sync
+  git ls-tree develop-sync -- CLAUDE.md NEPI-CODEX.md NEPI-FORGE.md NEPI-LORE.md .claude/
+If any protected file appears in either output, stop immediately and do not push.
+
+6f. Push to nepi_engine_ws develop:
+  git push upstream-public develop-sync:develop
+If rejected because the remote has new commits, fetch, rebase, and retry immediately:
+  git fetch upstream-public develop
+  git rebase upstream-public/develop
+  git push upstream-public develop-sync:develop
+Repeat until the push succeeds or a genuine conflict is found. A rejection due to remote advances is expected and handled by rebase — it is not a failure condition.
+
+STEP 7 — CLEANUP AND VERIFY
+  git checkout main
+  git submodule update
+  git branch -d develop-sync
+
+Confirm all of the following before marking complete:
+  - All affected submodule remotes received their commits
+  - nepi_engine_ws_claude main is up to date with origin
+  - nepi_engine_ws develop received only submodule pointer updates
+  - git ls-tree upstream-public/develop shows no protected files
+  - git submodule status in the superproject shows no + prefixes
+
+
 ## SUBMODULE WORKFLOW
 
 Changes to source code must be committed in the relevant submodule repo first, then the superproject updated:

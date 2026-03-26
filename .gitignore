@@ -1,2 +1,7 @@
-# Menuric Framework — session continuity files
+# Menuric Framework — session continuity files (supplementary context, not authoritative)
 .claude/sessions/*.md
+
+# Safety net — these files must never be staged for nepi_engine_ws
+# They are committed and tracked in nepi_engine_ws_claude only
+# This does not prevent commits here; it is a reminder layer only
+# The real protection is the cherry-pick workflow in PUSH EDITS

@@ -102,6 +102,25 @@ For deep pipeline and architecture details, this CLAUDE.md remains the authorita
 Format: YYYY-MM — Decision — Brief rationale
 
 - 2026-03 — Adopted Menuric Framework — Added governance scaffolding for AI-assisted development. Framework documents (LORE, FORGE, CODEX) added to repo root. Existing CLAUDE.md preserved and extended rather than replaced.
+- 2026-03 — Established PUSH EDITS workflow — Standard procedure for committing submodule changes, syncing superproject, and pushing to both nepi_engine_ws_claude and nepi_engine_ws develop while excluding Menuric Framework files. Triggered by the phrase "push edits". Upstream remote uses SSH: git@github.com:nepi-engine/nepi_engine_ws.git
+
+
+## PUSH EDITS WORKFLOW
+
+When told "push edits", execute the full push workflow documented in NEPI-FORGE.md under PUSH EDITS WORKFLOW. That document is the authoritative source for the procedure. The short version:
+
+1. Audit all submodules for pending changes (git submodule status + git status inside each modified submodule)
+2. Commit inside each submodule with a specific commit message (checkout main first if in detached HEAD)
+3. Push each submodule to its own remote (origin main)
+4. Update and commit superproject submodule pointers
+5. Push nepi_engine_ws_claude main to origin
+6. Fetch upstream-public/develop, create develop-sync branch, cherry-pick only the superproject pointer commit, verify protected files absent, push to nepi_engine_ws develop
+7. If push is rejected due to remote advances, fetch, rebase, and push again immediately
+8. Return to main, run git submodule update, delete develop-sync branch
+9. Verify: no + prefixes in git submodule status, protected files absent from nepi_engine_ws develop
+
+PROTECTED FILES — must never be pushed to nepi_engine_ws under any circumstances:
+  CLAUDE.md, NEPI-CODEX.md, NEPI-FORGE.md, NEPI-LORE.md, .claude/
 
 
 ## SESSION SUMMARY INSTRUCTIONS
