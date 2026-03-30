@@ -102,7 +102,8 @@ For deep pipeline and architecture details, this CLAUDE.md remains the authorita
 Format: YYYY-MM — Decision — Brief rationale
 
 - 2026-03 — Adopted Menuric Framework — Added governance scaffolding for AI-assisted development. Framework documents (LORE, FORGE, CODEX) added to repo root. Existing CLAUDE.md preserved and extended rather than replaced.
-- 2026-03 — Established PUSH EDITS workflow — Standard procedure for committing submodule changes, syncing superproject, and pushing to both nepi_engine_ws_claude and nepi_engine_ws develop while excluding Menuric Framework files. Triggered by the phrase "push edits". Upstream remote uses SSH: git@github.com:nepi-engine/nepi_engine_ws.git
+- 2026-03 — Established PUSH EDITS workflow — Standard procedure for committing submodule changes, syncing superproject, and pushing to origin main. Triggered by the phrase "push edits".
+- 2026-03 — Consolidated to single repo — Menuric Framework files (CLAUDE.md, NEPI-CODEX.md, NEPI-FORGE.md, NEPI-LORE.md, .claude/) now live directly in nepi_engine_ws. The nepi_engine_ws_claude fork is retired. No protected file filtering required on push.
 - 2026-03 — Submodule CLAUDE.md authoring pass completed — Initial developer reference files written for all submodules (nepi_engine, nepi_drivers, nepi_apps, nepi_interfaces, nepi_rui, nepi_ai_frameworks, nepi_3rd_party, nepi_scripts) by Claude Code.
 
 
@@ -114,14 +115,8 @@ When told "push edits", execute the full push workflow documented in NEPI-FORGE.
 2. Commit inside each submodule with a specific commit message (checkout main first if in detached HEAD)
 3. Push each submodule to its own remote (origin main)
 4. Update and commit superproject submodule pointers
-5. Push nepi_engine_ws_claude main to origin
-6. Fetch upstream-public/develop, create develop-sync branch, cherry-pick only the superproject pointer commit, verify protected files absent, push to nepi_engine_ws develop
-7. If push is rejected due to remote advances, fetch, rebase, and push again immediately
-8. Return to main, run git submodule update, delete develop-sync branch
-9. Verify: no + prefixes in git submodule status, protected files absent from nepi_engine_ws develop
-
-PROTECTED FILES — must never be pushed to nepi_engine_ws under any circumstances:
-  CLAUDE.md, NEPI-CODEX.md, NEPI-FORGE.md, NEPI-LORE.md, .claude/
+5. Push nepi_engine_ws main to origin
+6. Verify: no + prefixes in git submodule status
 
 
 ## SESSION SUMMARY INSTRUCTIONS

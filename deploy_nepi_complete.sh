@@ -2,8 +2,8 @@
 #
 # Copyright (c) 2024 Numurus <https://www.numurus.com>.
 #
-# This file is part of nepi engine ws (nepi_engine_ws) repo
-# (see https://github.com/nepi-engine/nepi_engine_ws)
+# This file is part of nepi engine ws (${NEPI_REPO_NAME}) repo
+# (see https://github.com/nepi-engine/${NEPI_REPO_NAME})
 #
 # License: NEPI Engine WS Tools and NEPI software deployed and/or compiled with these tools
 # are licensed under the "Numurus Software License", 
@@ -18,7 +18,7 @@
 #
 
 CONFIG_USER=$(id -un)
-
+buid_folder=$(pwd)
 
 #######################################################################################################
 # Usage: $ ./deploy_nepi_engine_complete.sh
@@ -29,6 +29,7 @@ CONFIG_USER=$(id -un)
 # It can be run from a development host or directly on the target hardware as described in this
 # repository's README
 #
+build_folder=$(pwd)
 # The script requires the following environment variable be set
 #    NEPI_REMOTE_SETUP: Indicates whether running from development host or directly on target 
 #                      (1 = Dev. Host, 0 = From Target)
@@ -40,7 +41,6 @@ CONFIG_USER=$(id -un)
     if [[ -v NEPI_HOST_USER ]]; then
         nepihost=$NEPI_HOST_USER
     fi
-    echo $nepihost
 
     NEPI_TARGET_USERNAME=${nepihost}
 #    NEPI_TARGET_SRC_DIR: Directory to deploy source code to
@@ -94,13 +94,18 @@ if [[ ! -v NEPI_ETC ]]; then
     NEPI_ETC=${NEPI_BASE}/etc
 fi
 
+if [[ ! -v NEPI_REPO_NAME  ]]; then
+  NEPI_REPO_NAME='nepi_engine_ws'
+fi
+
 NEPI_SSH_KEY=/home/${CONFIG_USER}/.ssh/nepi_default_ssh_key
 if [[ ! -v NEPI_SSH_KEY_PATH ]]; then
   NEPI_SSH_KEY_PATH=$NEPI_SSH_KEY
 fi
 
-
-
+if [[ ! -v NEPI_REPO_FOLDER ]]; then
+  NEPI_REPO_FOLDER=/home/${CONFIG_USER}/${NEPI_REPO_NAME}
+fi
 
 if [[ -z "${NEPI_REMOTE_SETUP}" ]]; then
   echo "Must have environtment variable NEPI_REMOTE_SETUP set"
@@ -112,6 +117,10 @@ if [ "${NEPI_REMOTE_SETUP}" == "0" ]; then
 
 elif [ "${NEPI_REMOTE_SETUP}" == "1" ]; then
 
+  if ! pingn; then
+    echo ""NEPI Device Not Connected""
+    return 
+  fi
   echo $NEPI_TARGET_IP
   if [[ -z "${NEPI_TARGET_IP}" ]]; then
     echo "Remote setup requires env. variable NEPI_TARGET_IP be assigned"
@@ -121,24 +130,19 @@ elif [ "${NEPI_REMOTE_SETUP}" == "1" ]; then
     echo "Remote setup requires env. variable NEPI_TARGET_USERNAME be assigned"
     return 
   fi
+
   if [[ -z "${NEPI_SSH_KEY}" ]]; then
     echo "Remote setup requires env. variable NEPI_SSH_KEY be assigned"
-    return 
-  fi
-  if pingn; then
-    : # Continue
-  else
-    echo "NEPI Device Not Connected"
     return 
   fi
   ssh-keygen -f "/home/${CONFIG_USER}/.ssh/known_hosts" -R "${NEPI_TARGET_IP}"
 fi
 
-cur_dir=$(pwd)
-cd /home/${CONFIG_USER}/nepi_engine_ws
+cur_dir=${build_folder}
+cd $NEPI_REPO_FOLDER
 fw_version=$(dev_version_string $(git tag --sort=v:refname | tail -1))
 echo ${fw_version}
-echo ${fw_version} > $(pwd)/src/nepi_engine/nepi_env/etc/fw_version.txt 
+echo ${fw_version} > ${build_folder}/src/nepi_engine/nepi_env/etc/fw_version.txt 
 
 
 
@@ -154,34 +158,34 @@ fi
 RSYNC_EXCLUDES=" --exclude .git --exclude .gitmodules --exclude .catkin_tools/profiles/*/packages --exclude devel_* --exclude logs_* --exclude install_* --exclude nepi_3rd_party"
 echo "Excluding ${RSYNC_EXCLUDES}"
 
-echo "Deploying NEPI Setup Source from $(pwd)/nepi_setup to ${NEPI_SETUP_SRC_DIR}/nepi_setup"
+echo "Deploying NEPI Setup Source from ${build_folder}/nepi_setup to ${NEPI_SETUP_SRC_DIR}/nepi_setup"
   # Deploy Setup Folders
 
 if [ "${NEPI_REMOTE_SETUP}" == "0" ]; then
-  sudo rsync -arh --chown=1000:1000 --delete  ${RSYNC_EXCLUDES} $(pwd)/nepi_setup/* ${NEPI_SETUP_SRC_DIR}/nepi_setup/
+  sudo rsync -arh --chown=1000:1000 --delete  ${RSYNC_EXCLUDES} ${build_folder}/nepi_setup/* ${NEPI_SETUP_SRC_DIR}/nepi_setup/
 elif [ "${NEPI_REMOTE_SETUP}" == "1" ]; then
-  rsync -azhe "ssh -i ${NEPI_SSH_KEY} -o StrictHostKeyChecking=no" --chown=1000:1000 --delete ${RSYNC_EXCLUDES} $(pwd)/nepi_setup ${NEPI_TARGET_USERNAME}@${NEPI_TARGET_IP}:${NEPI_SETUP_SRC_DIR}/
+  rsync -azhe "ssh -i ${NEPI_SSH_KEY} -o StrictHostKeyChecking=no" --chown=1000:1000 --delete ${RSYNC_EXCLUDES} ${build_folder}/nepi_setup ${NEPI_TARGET_USERNAME}@${NEPI_TARGET_IP}:${NEPI_SETUP_SRC_DIR}/
 fi
 
 
-echo "Updating NEPI Docker Config files from $(pwd)/nepi_setup/resources/docker to ${NEPI_CONFIG_DIR}/docker_cfg"
+echo "Updating NEPI Docker Config files from ${build_folder}/nepi_setup/resources/docker to ${NEPI_CONFIG_DIR}/docker_cfg"
   # Deploy Docker Folder
 if [ "${NEPI_REMOTE_SETUP}" == "0" ]; then
-  sudo rsync -arh --chown=1000:1000 --delete  ${RSYNC_EXCLUDES} $(pwd)/nepi_setup/resources/docker/* ${NEPI_CONFIG_DIR}/docker_cfg/
+  sudo rsync -arh --chown=1000:1000 --delete  ${RSYNC_EXCLUDES} ${build_folder}/nepi_setup/resources/docker/* ${NEPI_CONFIG_DIR}/docker_cfg/
 elif [ "${NEPI_REMOTE_SETUP}" == "1" ]; then
-  rsync -azhe "ssh -i ${NEPI_SSH_KEY} -o StrictHostKeyChecking=no" --delete $(pwd)/nepi_setup/resources/docker/ ${NEPI_TARGET_USERNAME}@${NEPI_TARGET_IP}:${NEPI_CONFIG_DIR}/docker_cfg
+  rsync -azhe "ssh -i ${NEPI_SSH_KEY} -o StrictHostKeyChecking=no" --delete ${build_folder}/nepi_setup/resources/docker/ ${NEPI_TARGET_USERNAME}@${NEPI_TARGET_IP}:${NEPI_CONFIG_DIR}/docker_cfg
 fi
 shopt -u dotglob
 
 shopt -s dotglob
-echo "Deploying NEPI Engine Source from $(pwd) to ${NEPI_TARGET_SRC_DIR}"
+echo "Deploying NEPI Engine Source from ${build_folder} to ${NEPI_TARGET_SRC_DIR}"
 if [ "$NEPI_REMOTE_SETUP" -eq 0 ]; then
-  sudo rsync -arh --chown=1000:1000 ${RSYNC_EXCLUDES} ../nepi_engine_ws/* ${NEPI_TARGET_SRC_DIR}/nepi_engine_ws/
-  sudo chown 1000:1000 ${NEPI_TARGET_SRC_DIR}/nepi_engine_ws
-  sudo chmod 775 ${NEPI_TARGET_SRC_DIR}/nepi_engine_ws
+  sudo rsync -arh --chown=1000:1000 ${RSYNC_EXCLUDES} ../${NEPI_REPO_NAME}/* ${NEPI_TARGET_SRC_DIR}/${NEPI_REPO_NAME}/
+  sudo chown 1000:1000 ${NEPI_TARGET_SRC_DIR}/${NEPI_REPO_NAME}
+  sudo chmod 775 ${NEPI_TARGET_SRC_DIR}/${NEPI_REPO_NAME}
 elif [ "$NEPI_REMOTE_SETUP" == 1 ]; then
-  rsync -azhe  "ssh -i ${NEPI_SSH_KEY} -o StrictHostKeyChecking=no" --chown=1000:1000  ${RSYNC_EXCLUDES} ../nepi_engine_ws/ ${NEPI_TARGET_USERNAME}@${NEPI_TARGET_IP}:${NEPI_TARGET_SRC_DIR}/nepi_engine_ws
-  #ssh -o StrictHostKeyChecking=no -p 22 -i $NEPI_SSH_KEY_PATH ${NEPI_TARGET_USERNAME}@${NEPI_TARGET_IP} "sudo -S chown 1000:1000 ${NEPI_TARGET_SRC_DIR}/nepi_engine_ws && chmod 775 ${NEPI_TARGET_SRC_DIR}/nepi_engine_ws"
+  rsync -azhe  "ssh -i ${NEPI_SSH_KEY} -o StrictHostKeyChecking=no" --chown=1000:1000  ${RSYNC_EXCLUDES} ../${NEPI_REPO_NAME}/ ${NEPI_TARGET_USERNAME}@${NEPI_TARGET_IP}:${NEPI_TARGET_SRC_DIR}/${NEPI_REPO_NAME}
+  #ssh -o StrictHostKeyChecking=no -p 22 -i $NEPI_SSH_KEY_PATH ${NEPI_TARGET_USERNAME}@${NEPI_TARGET_IP} "sudo -S chown 1000:1000 ${NEPI_TARGET_SRC_DIR}/${NEPI_REPO_NAME} && chmod 775 ${NEPI_TARGET_SRC_DIR}/${NEPI_REPO_NAME}"
 fi
 
 
@@ -192,9 +196,9 @@ if [[ "$DEPLOY_3RD_PARTY" -eq 1 ]]; then
   echo "Excluding ${RSYNC_EXCLUDES}"
     # Deploy Third Party Folders
   if [ "${NEPI_REMOTE_SETUP}" == "0" ]; then
-    sudo rsync -arh --chown=1000:1000 ${RSYNC_EXCLUDES} $(pwd)/src/nepi_3rd_party ${NEPI_TARGET_SRC_DIR}/nepi_engine_ws/src/
+    sudo rsync -arh --chown=1000:1000 ${RSYNC_EXCLUDES} ${build_folder}/src/nepi_3rd_party ${NEPI_TARGET_SRC_DIR}/${NEPI_REPO_NAME}/src/
   elif [ "${NEPI_REMOTE_SETUP}" == "1" ]; then
-    rsync -azhe "ssh -i ${NEPI_SSH_KEY} -o StrictHostKeyChecking=no" --chown=1000:1000 ${RSYNC_EXCLUDES} $(pwd)/src/nepi_3rd_party ${NEPI_TARGET_USERNAME}@${NEPI_TARGET_IP}:${NEPI_TARGET_SRC_DIR}/nepi_engine_ws/src/
+    rsync -azhe "ssh -i ${NEPI_SSH_KEY} -o StrictHostKeyChecking=no" --chown=1000:1000 ${RSYNC_EXCLUDES} ${build_folder}/src/nepi_3rd_party ${NEPI_TARGET_USERNAME}@${NEPI_TARGET_IP}:${NEPI_TARGET_SRC_DIR}/${NEPI_REPO_NAME}/src/
     
   fi
 
@@ -204,7 +208,7 @@ else
   echo ""
 fi
 
-echo "0.0.0" > $(pwd)/src/nepi_engine/nepi_env/etc/fw_version.txt
+echo "0.0.0" > ${build_folder}/src/nepi_engine/nepi_env/etc/fw_version.txt
 
 cd $cur_dir
 
